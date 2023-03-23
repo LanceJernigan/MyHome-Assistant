@@ -1,15 +1,23 @@
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Chat.module.css";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import SendIcon from "@/icons/send";
 import ThemeWrapper from "dx-sdk/build/providers/Theme";
 import { ModelCard } from "dx-sdk/build/components";
-import { mockData } from "./chatData.mock.js";
 import useChatGPT from "@/hooks/useChatGPT";
 import ExpandingTextArea from "@/components/expandingTextArea";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import { useModelsService } from "dx-sdk/build/services";
+import toCurrency from "dx-sdk/build/utilities/toCurrency";
+import { Heart, FilledHeart } from "dx-sdk/build/icons";
 
 const inter = Inter({ subsets: ["latin"] });
+
+const client = new ApolloClient({
+  uri: "https://api-clayton-dx-orchestration.dev.cct-pubweb.com/graphql",
+  cache: new InMemoryCache(),
+});
 
 const salesRepMessages = [
   {
@@ -29,6 +37,7 @@ interface Message {
   id: number;
   author: "system" | "user";
   content: string;
+  tokens: number;
 }
 
 interface UserState {
@@ -42,6 +51,7 @@ interface UserState {
   minSquareFeet: null | number;
 }
 export default function Home() {
+  const chatAnchorRef = useRef<HTMLUListElement>(null);
   const [prompt, setPrompt] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [loading, setLoading] = useState(false);
@@ -56,6 +66,22 @@ export default function Home() {
     minPrice: null,
     maxSquareFeet: null,
     minSquareFeet: null,
+  });
+  const [tokenCount, setTokenCount] = useState(0);
+  const [models, setModels] = useState<any[]>([]);
+  const modelsService = useModelsService({
+    client,
+    filters: {
+      beds: userState.beds || 3,
+      baths: userState.baths || 2,
+      distance: userState.distance || 50,
+      latitude: 36.0013,
+      longitude: -83.9119,
+      maxPrice: userState.maxPrice || 150000,
+      minPrice: userState.minPrice || 0,
+      maxSquareFeet: userState.maxSquareFeet || 3000,
+      minSquareFeet: userState.minSquareFeet || 0,
+    },
   });
 
   const handleInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -72,6 +98,7 @@ export default function Home() {
         id: queue.length + 1,
         author: "user",
         content: prompt,
+        tokens: 0,
       },
     ]);
     setPrompt("");
@@ -98,6 +125,7 @@ export default function Home() {
           id: queue.length + 1,
           author: "system",
           content: choice.message.content,
+          tokens: result.usage.total_tokens,
         });
       }
 
@@ -116,6 +144,7 @@ export default function Home() {
             id: 0,
             author: "system",
             content: choice.message.content,
+            tokens: result.usage.total_tokens,
           });
         }
 
@@ -132,8 +161,10 @@ export default function Home() {
           id: incomingMessage.id || queue.length + 1,
           author: incomingMessage.author,
           content: incomingMessage.content,
+          tokens: incomingMessage.tokens,
         },
       ]);
+      setTokenCount(tokenCount + incomingMessage.tokens);
     }
   }, [incomingMessage]);
 
@@ -170,7 +201,57 @@ export default function Home() {
     }
   }, [queue]);
 
-  console.log(userState);
+  useEffect(() => {
+    chatAnchorRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [queue]);
+
+  useEffect(() => {
+    if (modelsService.data?.length) {
+      setModels(
+        modelsService.data?.slice(0, 6).map((item) => ({
+          key: item.modelNumber,
+          images: item.thumbnailImages.slice(0, 5),
+          heading: item.modelDescription,
+          subheading: "Before Options",
+          price: `${toCurrency(item.startingInThePrice || item.lowPrice, 0)}s`,
+          info: [
+            `${item.beds} beds`,
+            `${item.baths} baths`,
+            `${toCurrency(item.maxSquareFeet, 0, false)} sq. ft.`,
+          ],
+          componentsProps: {
+            Action: {
+              components: {
+                Icon: Heart,
+                CheckedIcon: FilledHeart,
+              },
+              id: item.modelNumber,
+              // checked: userService.favorites?.includes(item.modelNumber),
+              handlers: {
+                // onChange: () =>
+                // 	userService.actions?.toggleFavorite(item.modelNumber),
+              },
+            },
+            Gallery: {
+              carouselImageLink: true,
+              carouselLinkProps: {
+                href: `https://www.claytonhomes.com/homes/${item.modelNumber}/`,
+                target: "_blank",
+              },
+            },
+            Link: {
+              href: `https://www.claytonhomes.com/homes/${item.modelNumber}`,
+              target: "_blank",
+            },
+          },
+        })) || []
+      );
+    }
+  }, [modelsService.data]);
+
+  console.log(userState, tokenCount);
 
   return (
     <>
@@ -207,6 +288,7 @@ export default function Home() {
               className={`${styles.loading} ${
                 styles[loading ? "loadingActive" : "loadingInactive"]
               }`}
+              ref={chatAnchorRef}
             >
               <li></li>
               <li></li>
@@ -218,20 +300,11 @@ export default function Home() {
               activeTab === "homes" && styles.homesActive
             }`}
           >
-            {mockData &&
-              mockData.map((data, index) => {
-                return (
-                  <li className={styles.home} key={index}>
-                    <ModelCard
-                      heading={data.heading}
-                      subheading={data.subheading}
-                      price={data.price}
-                      info={data.info}
-                      images={data.images}
-                    />
-                  </li>
-                );
-              })}
+            {models?.map((model) => (
+              <li className={styles.home} key={model.key}>
+                <ModelCard {...model} />
+              </li>
+            ))}
           </ul>
           <section className={styles.chat}>
             <ul className={styles.navigation}>
