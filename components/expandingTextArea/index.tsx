@@ -24,14 +24,12 @@ const ExpandingTextArea = (props: React.HTMLProps<HTMLTextAreaElement>) => {
   useEffect(() => {
     setTextAreaHeight(
       `${
-        textAreaRef.current?.scrollHeight || 0 < 300
+        (textAreaRef.current?.scrollHeight || 0) < 200
           ? textAreaRef.current?.scrollHeight
-          : 300
+          : 200
       }px`
     );
   }, [text]);
-
-  console.log(text, textAreaHeight);
 
   return (
     <textarea
