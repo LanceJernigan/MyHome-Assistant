@@ -1,4 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { Configuration, OpenAIApi } from "openai";
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
 
 interface chatParams {
   role: string;
@@ -27,45 +34,23 @@ interface chatResponse {
 }
 
 const chatHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-  res.status(200).json(sampleData);
+  // Inserting a default request body message for testing purposes
+  // Can be removed once chat is implemented in front-end
+  await openai
+    .createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: req.body.messages
+        ? req.body.messages
+        : [{"role": "user", "content": "Say this is a test!"}],
+    })
+    .then((response) => {
+      console.log(response.data);
+      res.status(200).json({ result: response.data });
+    })
+    .catch((e) => {
+      console.error(`There was an error with ChatGPT: ${e}`);
+      res.status(500).send(e);
+    });
 };
 
 export default chatHandler;
-
-const sampleData = {
-  id: 1,
-  object: "chat.completion",
-  created: 2,
-  model: "text-davinci-002-render-sha",
-  usage: {
-    prompt_tokens: 2,
-    completion_tokens: 1,
-    total_tokens: 3,
-  },
-  choices: [
-    {
-      message: {
-        role: "user",
-        content: "Here is message 1",
-      },
-      finish_reasoning: "stop",
-      index: 0,
-    },
-    {
-      message: {
-        role: "user",
-        content: "Here is message 2",
-      },
-      finish_reasoning: "stop",
-      index: 1,
-    },
-    {
-      message: {
-        role: "user",
-        content: "Here is message 3",
-      },
-      finish_reasoning: "stop",
-      index: 2,
-    },
-  ],
-};
