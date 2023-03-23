@@ -15,42 +15,99 @@ import ExpandingTextArea from "@/components/expandingTextArea";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const salesRepMessages = [
+  {
+    role: "system",
+    content: `You are a sales representative named 'MyHome Assistant' who helps customers find the best model for them.  You should speak in a witty, relaxed, and relatable tone.  You need to as the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), max price of home (maxPrice), min price of home (minPrice), max square feet of home (maxSquareFeet), min square feet of home (minSquareFeet).  If you know the answer to a question feel free to skip it.`,
+  },
+];
+
+interface Message {
+  id: number;
+  author: "system" | "user";
+  content: string;
+}
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [loading, setLoading] = useState(false);
-  const [queue, setQueue] = useState<
-    { id: number; author: "system" | "user"; content: string }[]
-  >([]);
+  const [incomingMessage, setIncomingMessage] = useState<Message | null>(null);
+  const [queue, setQueue] = useState<Message[]>([]);
 
   const handleInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
   }, []);
 
-  useEffect(() => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    const lastMessage = queue[queue.length - 1];
+
+    setQueue([
+      ...queue,
+      {
+        id: queue.length + 1,
+        author: "user",
+        content: prompt,
+      },
+    ]);
+    setPrompt("");
     setLoading(true);
     useChatGPT([
+      ...salesRepMessages,
       {
         role: "system",
-        content: `You are a sales representative named 'MyHome Assistant' who helps customers find the best model for them.  You should speak in a witty, relaxed, and relatable tone.  You need to as the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), max price of home (maxPrice), min price of home (minPrice), max square feet of home (maxSquareFeet), min square feet of home (minSquareFeet).  If you know the answer to a question feel free to skip it.`,
+        content: `known information: `,
+      },
+      {
+        role: "system",
+        content: `last question: ${lastMessage}`,
       },
     ]).then((result) => {
       const choice = result.choices[0];
 
       if (choice) {
-        setQueue([
-          ...queue,
-          {
-            id: queue.length + 1,
-            author: "system",
-            content: choice.message.content,
-          },
-        ]);
+        setIncomingMessage({
+          id: queue.length + 1,
+          author: "system",
+          content: choice.message.content,
+        });
       }
 
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    if (!loading && !queue.length) {
+      setLoading(true);
+      useChatGPT(salesRepMessages).then((result) => {
+        const choice = result.choices[0];
+
+        if (choice) {
+          setIncomingMessage({
+            id: queue.length + 1,
+            author: "system",
+            content: choice.message.content,
+          });
+        }
+
+        setLoading(false);
+      });
+    }
   }, []);
+
+  useEffect(() => {
+    if (incomingMessage) {
+      setQueue([
+        ...queue,
+        {
+          id: incomingMessage.id || queue.length + 1,
+          author: incomingMessage.author,
+          content: incomingMessage.content,
+        },
+      ]);
+    }
+  }, [incomingMessage]);
 
   return (
     <>
@@ -125,7 +182,7 @@ export default function Home() {
               </button>
             </li>
           </ul>
-          <form className={styles.form}>
+          <form className={styles.form} onSubmit={handleSubmit}>
             <ExpandingTextArea
               className={`${styles.textarea} ${inter.className}`}
               value={prompt}
