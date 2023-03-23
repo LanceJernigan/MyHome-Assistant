@@ -15,19 +15,48 @@ interface chatResponse {
   created: number;
   model: string;
   usage: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
   };
   choices: {
-      message: chatParams;
-      finish_reasoning: string;
-      index: number;
+    message: chatParams;
+    finish_reasoning: string;
+    index: number;
   }[];
 }
 
 const chatHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-  res.status(200).send("Successful Routing to /chat");
+  res.status(200).json(sampleData);
 };
 
 export default chatHandler;
+
+const sampleData = {
+  id: 1,
+  object: {},
+  created: 2,
+  model: "text-davinci-002-render-sha",
+  usage: {
+    prompt_tokens: 2,
+    completion_tokens: 1,
+    total_tokens: 3,
+  },
+  choices: [
+    {
+      message: "Here is message 1",
+      finish_reasoning: "Answer to message 1",
+      index: 0,
+    },
+    {
+      message: "Here is message 2",
+      finish_reasoning: "Answer to message 2",
+      index: 1,
+    },
+    {
+      message: "Here is message 3",
+      finish_reasoning: "Answer to message 3",
+      index: 2,
+    },
+  ],
+};
