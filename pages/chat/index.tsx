@@ -1,7 +1,14 @@
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Chat.module.css";
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  KeyboardEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import SendIcon from "@/icons/send";
 import ThemeWrapper from "dx-sdk/build/providers/Theme";
 import { ModelCard } from "dx-sdk/build/components";
@@ -84,12 +91,20 @@ export default function Home() {
     },
   });
 
+  const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    if (e.which === 13 && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleSubmit();
+    }
+  };
+
   const handleInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
   }, []);
 
-  const handleSubmit = (e: React.SyntheticEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     const lastMessage = queue[queue.length - 1];
 
     setQueue([
@@ -334,6 +349,7 @@ export default function Home() {
                 className={`${styles.textarea} ${inter.className}`}
                 value={prompt}
                 onInput={handleInput}
+                onKeyDown={handleKeyDown}
                 rows={1}
               />
               <button type="submit" className={styles.send}>
