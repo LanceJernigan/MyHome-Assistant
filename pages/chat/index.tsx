@@ -1,14 +1,7 @@
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Chat.module.css";
-import {
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import SendIcon from "@/icons/send";
 import useChatGPT from "@/hooks/useChatGPT";
 import ExpandingTextArea from "@/components/expandingTextArea";
