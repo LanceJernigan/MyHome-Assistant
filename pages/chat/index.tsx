@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import styles from "@/styles/Chat.module.css";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import SendIcon from "@/icons/send";
+import ThemeWrapper from "dx-sdk/build/providers/Theme";
+import { ModelCard } from "dx-sdk/build/components";
+import { mockData } from "./chatData.mock.js";
 import useChatGPT from "@/hooks/useChatGPT";
 import ExpandingTextArea from "@/components/expandingTextArea";
 
@@ -171,90 +174,102 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>MyHome Assistant</title>
-        <meta
-          name="description"
-          content="Chat assistant to help you find your dream home."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <main className={`${styles.main} ${inter.className}`}>
-        <header className={styles.header}>
-          <p>MyHome Assistant</p>
-        </header>
-        <section
-          className={`${styles.queue} ${
-            activeTab === "queue" && styles.queueActive
-          }`}
-        >
-          {queue.map((message) => (
-            <section
-              className={`${styles.message} ${
-                styles[`message-${message.author}`]
-              }`}
-              key={message.id}
-            >
-              <p>{message.content}</p>
-            </section>
-          ))}
-          <ul
-            className={`${styles.loading} ${
-              styles[loading ? "loadingActive" : "loadingInactive"]
+      <ThemeWrapper theme={{}}>
+        <Head>
+          <title>MyHome Assistant</title>
+          <meta
+            name="description"
+            content="Chat assistant to help you find your dream home."
+          />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+        <main className={`${styles.main} ${inter.className}`}>
+          <header className={styles.header}>
+            <p>MyHome Assistant</p>
+          </header>
+          <section
+            className={`${styles.queue} ${
+              activeTab === "queue" && styles.queueActive
             }`}
           >
-            <li></li>
-            <li></li>
-            <li></li>
-          </ul>
-        </section>
-        <ul
-          className={`${styles.homes} ${
-            activeTab === "homes" && styles.homesActive
-          }`}
-        >
-          <li className={styles.home}></li>
-          <li className={styles.home}></li>
-          <li className={styles.home}></li>
-          <li className={styles.home}></li>
-        </ul>
-        <section className={styles.chat}>
-          <ul className={styles.navigation}>
-            <li>
-              <button
-                className={`${styles.tabButton} ${
-                  activeTab === "queue" && styles.tabButtonActive
+            {queue.map((message) => (
+              <section
+                className={`${styles.message} ${
+                  styles[`message-${message.author}`]
                 }`}
-                onClick={() => setActiveTab("queue")}
+                key={message.id}
               >
-                Chat
-              </button>
-            </li>
-            <li>
-              <button
-                className={`${styles.tabButton} ${
-                  activeTab === "homes" && styles.tabButtonActive
-                }`}
-                onClick={() => setActiveTab("homes")}
-              >
-                Homes
-              </button>
-            </li>
+                <p>{message.content}</p>
+              </section>
+            ))}
+            <ul
+              className={`${styles.loading} ${
+                styles[loading ? "loadingActive" : "loadingInactive"]
+              }`}
+            >
+              <li></li>
+              <li></li>
+              <li></li>
+            </ul>
+          </section>
+          <ul
+            className={`${styles.homes} ${
+              activeTab === "homes" && styles.homesActive
+            }`}
+          >
+            {mockData &&
+              mockData.map((data, index) => {
+                return (
+                  <li className={styles.home} key={index}>
+                    <ModelCard
+                      heading={data.heading}
+                      subheading={data.subheading}
+                      price={data.price}
+                      info={data.info}
+                      images={data.images}
+                    />
+                  </li>
+                );
+              })}
           </ul>
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <ExpandingTextArea
-              className={`${styles.textarea} ${inter.className}`}
-              value={prompt}
-              onInput={handleInput}
-              rows={1}
-            />
-            <button type="submit" className={styles.send}>
-              <SendIcon />
-            </button>
-          </form>
-        </section>
-      </main>
+          <section className={styles.chat}>
+            <ul className={styles.navigation}>
+              <li>
+                <button
+                  className={`${styles.tabButton} ${
+                    activeTab === "queue" && styles.tabButtonActive
+                  }`}
+                  onClick={() => setActiveTab("queue")}
+                >
+                  Chat
+                </button>
+              </li>
+              <li>
+                <button
+                  className={`${styles.tabButton} ${
+                    activeTab === "homes" && styles.tabButtonActive
+                  }`}
+                  onClick={() => setActiveTab("homes")}
+                >
+                  Homes
+                </button>
+              </li>
+            </ul>
+            <form className={styles.form} onSubmit={handleSubmit}>
+              <ExpandingTextArea
+                className={`${styles.textarea} ${inter.className}`}
+                value={prompt}
+                onInput={handleInput}
+                rows={1}
+              />
+              <button type="submit" className={styles.send}>
+                <SendIcon />
+              </button>
+            </form>
+          </section>
+        </main>
+      </ThemeWrapper>
     </>
   );
 }
