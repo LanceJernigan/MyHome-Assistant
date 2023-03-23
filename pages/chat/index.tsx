@@ -22,6 +22,13 @@ const salesRepMessages = [
   },
 ];
 
+const jsonParserMessages = [
+  {
+    role: "system",
+    content: `You're an ai that takes natural language and parses it into json format.  You should never return anything but valid JSON.  If a value is unknown return null.  New information should always trump known information.  The format should be as follows: { beds: number, baths: number, zipcode: string, distance: number, maxPrice: number, minPrice: number, maxSquareFeet: number, minSquareFeet: number }.`,
+  },
+];
+
 interface Message {
   id: number;
   author: "system" | "user";
@@ -110,7 +117,7 @@ export default function Home() {
 
         if (choice) {
           setIncomingMessage({
-            id: queue.length + 1,
+            id: 0,
             author: "system",
             content: choice.message.content,
           });
@@ -133,6 +140,41 @@ export default function Home() {
       ]);
     }
   }, [incomingMessage]);
+
+  useEffect(() => {
+    const lastMessage = queue[queue.length - 1];
+
+    if (lastMessage?.author === "user") {
+      useChatGPT([
+        ...jsonParserMessages,
+        {
+          role: "system",
+          content: `last question: ${queue[queue.length - 2].content}`,
+        },
+        {
+          role: "system",
+          content: `known information: ${JSON.stringify(userState)}`,
+        },
+        {
+          role: "user",
+          content: `last answer: ${lastMessage.content}`,
+        },
+      ]).then((response) => {
+        const jsonMatches =
+          response.choices[0].message.content.match(/({.*})/gs);
+        const newState =
+          jsonMatches?.[0] && jsonMatches?.[0][0] === "{"
+            ? JSON.parse(jsonMatches[0]) || null
+            : null;
+
+        if (newState) {
+          setUserState(newState);
+        }
+      });
+    }
+  }, [queue]);
+
+  console.log(userState);
 
   return (
     <>
