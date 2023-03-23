@@ -34,7 +34,7 @@ export default chatHandler;
 
 const sampleData = {
   id: 1,
-  object: {},
+  object: "chat.completion",
   created: 2,
   model: "text-davinci-002-render-sha",
   usage: {
@@ -44,18 +44,27 @@ const sampleData = {
   },
   choices: [
     {
-      message: "Here is message 1",
-      finish_reasoning: "Answer to message 1",
+      message: {
+        role: "user",
+        content: "Here is message 1",
+      },
+      finish_reasoning: "stop",
       index: 0,
     },
     {
-      message: "Here is message 2",
-      finish_reasoning: "Answer to message 2",
+      message: {
+        role: "user",
+        content: "Here is message 2",
+      },
+      finish_reasoning: "stop",
       index: 1,
     },
     {
-      message: "Here is message 3",
-      finish_reasoning: "Answer to message 3",
+      message: {
+        role: "user",
+        content: "Here is message 3",
+      },
+      finish_reasoning: "stop",
       index: 2,
     },
   ],
