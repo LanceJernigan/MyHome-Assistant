@@ -1,18 +1,31 @@
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Chat.module.css";
-import { useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import SendIcon from "@/icons/send";
 import useChatGPT from "@/hooks/useChatGPT";
+import ExpandingTextArea from "@/components/expandingTextArea";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
+  const [prompt, setPrompt] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [loading, setLoading] = useState(false);
   const [queue, setQueue] = useState<
     { id: number; author: "system" | "user"; content: string }[]
   >([]);
+
+  const handleInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -113,7 +126,12 @@ export default function Home() {
             </li>
           </ul>
           <form className={styles.form}>
-            <textarea className={styles.textarea} />
+            <ExpandingTextArea
+              className={`${styles.textarea} ${inter.className}`}
+              value={prompt}
+              onInput={handleInput}
+              rows={1}
+            />
             <button type="submit" className={styles.send}>
               <SendIcon />
             </button>

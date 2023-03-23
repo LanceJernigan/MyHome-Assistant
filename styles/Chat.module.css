@@ -166,11 +166,10 @@
 
 .textarea {
   width: 100%;
-  padding: 20px;
+  padding: 20px 70px 20px 20px;
   border: none;
   border-radius: 20px;
   background: rgba(0, 0, 0, .05);
-  height: 56px;
   resize: none;
 }
 
