@@ -42,13 +42,13 @@
 .homes {
   padding: 30px;
   display: grid;
-  grid-template-columns: repeat( auto-fit, minmax(260px, 310px));
   list-style: none;
   grid-area: queue;
   overflow-y: auto;
   padding-bottom: 150px;
   grid-gap: 30px;
   align-content: flex-start;
+  grid-template-columns: repeat(auto-fit, minmax(300px, auto));
 }
 
 .home {
