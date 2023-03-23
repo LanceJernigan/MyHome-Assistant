@@ -18,7 +18,7 @@ const inter = Inter({ subsets: ["latin"] });
 const salesRepMessages = [
   {
     role: "system",
-    content: `You are a sales representative named 'MyHome Assistant' who helps customers find the best model for them.  You should speak in a witty, relaxed, and relatable tone.  You need to as the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), max price of home (maxPrice), min price of home (minPrice), max square feet of home (maxSquareFeet), min square feet of home (minSquareFeet).  If you know the answer to a question feel free to skip it.`,
+    content: `You are an ai assistant that helps customers find their dream home to purchase.  Your name is MyHome Assistant.  When responding you should be witty, relaxed, and relatable but still professional.  New input should trump known information.  You need to ask the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), maximum price of home (maxPrice), minimum price of home (minPrice), max square feet of home (maxSquareFeet).  If there is known information assume we've already started a conversation.  Use known information for context.  If you know the answer to a question skip it.`,
   },
 ];
 
@@ -27,12 +27,33 @@ interface Message {
   author: "system" | "user";
   content: string;
 }
+
+interface UserState {
+  beds: null | number;
+  baths: null | number;
+  zipcode: null | number;
+  distance: null | number;
+  maxPrice: null | number;
+  minPrice: null | number;
+  maxSquareFeet: null | number;
+  minSquareFeet: null | number;
+}
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [loading, setLoading] = useState(false);
   const [incomingMessage, setIncomingMessage] = useState<Message | null>(null);
   const [queue, setQueue] = useState<Message[]>([]);
+  const [userState, setUserState] = useState<UserState>({
+    beds: null,
+    baths: null,
+    zipcode: null,
+    distance: null,
+    maxPrice: null,
+    minPrice: null,
+    maxSquareFeet: null,
+    minSquareFeet: null,
+  });
 
   const handleInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
@@ -56,11 +77,15 @@ export default function Home() {
       ...salesRepMessages,
       {
         role: "system",
-        content: `known information: `,
+        content: `known information: ${JSON.stringify(userState)}`,
       },
       {
         role: "system",
-        content: `last question: ${lastMessage}`,
+        content: `last question: ${lastMessage.content}`,
+      },
+      {
+        role: "user",
+        content: prompt,
       },
     ]).then((result) => {
       const choice = result.choices[0];
