@@ -1,13 +1,43 @@
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Chat.module.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SendIcon from "@/icons/send";
+import useChatGPT from "@/hooks/useChatGPT";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("queue");
+  const [loading, setLoading] = useState(false);
+  const [queue, setQueue] = useState<
+    { id: number; author: "system" | "user"; content: string }[]
+  >([]);
+
+  useEffect(() => {
+    setLoading(true);
+    useChatGPT([
+      {
+        role: "system",
+        content: `You are a sales representative named 'MyHome Assistant' who helps customers find the best model for them.  You should speak in a witty, relaxed, and relatable tone.  You need to as the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), max price of home (maxPrice), min price of home (minPrice), max square feet of home (maxSquareFeet), min square feet of home (minSquareFeet).  If you know the answer to a question feel free to skip it.`,
+      },
+    ]).then((result) => {
+      const choice = result.choices[0];
+
+      if (choice) {
+        setQueue([
+          ...queue,
+          {
+            id: queue.length + 1,
+            author: "system",
+            content: choice.message.content,
+          },
+        ]);
+      }
+
+      setLoading(false);
+    });
+  }, []);
 
   return (
     <>
@@ -29,22 +59,25 @@ export default function Home() {
             activeTab === "queue" && styles.queueActive
           }`}
         >
-          <section className={`${styles.message} ${styles["message-system"]}`}>
-            <p>
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nihil
-              delectus distinctio labore animi aspernatur, facilis dignissimos
-              vero, inventore, quod repellendus sunt eveniet sapiente.
-              Temporibus nobis distinctio commodi voluptates quod suscipit?
-            </p>
-          </section>
-          <section className={`${styles.message} ${styles["message-user"]}`}>
-            <p>
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nihil
-              delectus distinctio labore animi aspernatur, facilis dignissimos
-              vero, inventore, quod repellendus sunt eveniet sapiente.
-              Temporibus nobis distinctio commodi voluptates quod suscipit?
-            </p>
-          </section>
+          {queue.map((message) => (
+            <section
+              className={`${styles.message} ${
+                styles[`message-${message.author}`]
+              }`}
+              key={message.id}
+            >
+              <p>{message.content}</p>
+            </section>
+          ))}
+          <ul
+            className={`${styles.loading} ${
+              styles[loading ? "loadingActive" : "loadingInactive"]
+            }`}
+          >
+            <li></li>
+            <li></li>
+            <li></li>
+          </ul>
         </section>
         <ul
           className={`${styles.homes} ${
