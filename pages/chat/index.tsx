@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import SendIcon from "@/icons/send";
-import { ModelCard } from "dx-sdk/build/components";
+import { Checkbox, ModelCard } from "dx-sdk/build/components";
 import useChatGPT from "@/hooks/useChatGPT";
 import ExpandingTextArea from "@/components/expandingTextArea";
 import { ApolloClient, InMemoryCache } from "@apollo/client";
@@ -239,6 +239,9 @@ export default function Home() {
             `${item.baths} baths`,
             `${toCurrency(item.maxSquareFeet, 0, false)} sq. ft.`,
           ],
+          components: {
+            Action: Checkbox,
+          },
           componentsProps: {
             Action: {
               components: {
@@ -246,10 +249,10 @@ export default function Home() {
                 CheckedIcon: FilledHeart,
               },
               id: item.modelNumber,
-              // checked: userService.favorites?.includes(item.modelNumber),
+              checked: userContextState.favorites?.includes(item.modelNumber),
               handlers: {
-                // onChange: () =>
-                // 	userService.actions?.toggleFavorite(item.modelNumber),
+                onChange: () =>
+                  userContextState.actions?.toggleFavorite(item.modelNumber),
               },
             },
             Gallery: {
@@ -267,7 +270,7 @@ export default function Home() {
         })) || []
       );
     }
-  }, [modelsService.data, modelsService.loading]);
+  }, [modelsService.data, modelsService.loading, userContextState.favorites]);
 
   useEffect(() => {
     if (
@@ -287,6 +290,43 @@ export default function Home() {
       });
     }
   }, [userState]);
+
+  useEffect(() => {
+    if (userContextState.user?.profile?.profileId) {
+      setUserState({
+        ...userState,
+        ...(userContextState.user.profile.preferredBeds
+          ? { beds: userContextState.user.profile.preferredBeds }
+          : {}),
+        ...(userContextState.user.profile.preferredBaths
+          ? { baths: userContextState.user.profile.preferredBaths }
+          : {}),
+        ...(userContextState.zipcode
+          ? { zipcode: parseInt(userContextState.zipcode) }
+          : {}),
+        ...(userContextState.distance
+          ? { distance: userContextState.distance }
+          : {}),
+        ...(userContextState.user.profile.budget
+          ? { maxPrice: userContextState.user.profile.budget }
+          : {}),
+        ...(userContextState.user.profile.landZip
+          ? { zipcode: userContextState.user.profile.landZip }
+          : {}),
+      });
+    }
+  }, [userContextState.user?.profile]);
+
+  useEffect(() => {
+    if (!userState.zipcode && userContextState.location?.postalCode) {
+      setUserState({
+        ...userState,
+        zipcode: parseInt(userContextState.location.postalCode),
+      });
+    }
+  }, [userContextState.location]);
+
+  console.log(userState);
 
   return (
     <>

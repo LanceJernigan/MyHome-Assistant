@@ -1,4 +1,5 @@
 import {
+  useCorpCollectionsService,
   useFeaturesService,
   useLocationService,
   useUserService,
@@ -27,11 +28,20 @@ const initialState = {
   token: null,
   location: null,
   features: null,
+  favorites: [],
   marketingMeta: {},
   loading: false,
   distance: 50,
   zipcode: "",
 };
+
+export interface LocalFavorite {
+  modelNumber: string;
+  state: "toAdd" | "adding" | "added" | "toRemove" | "removing" | "removed";
+  modelId: number;
+  collectionId: number;
+  modelCollectionId: number;
+}
 
 export const UserContext = createContext<UserProviderValue>(initialState);
 
@@ -44,6 +54,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [completeContent, setCompleteContent] = useState<string[]>([]);
   const { user, getAccessTokenSilently } = useAuth0();
   const [marketingMeta, setMarketingMeta] = useState({});
+  const [favorites, setFavorites] = useState<LocalFavorite[]>([]);
 
   const userService = useUserService({
     client,
@@ -88,6 +99,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     condition: {
       type: "corp",
     },
+  });
+
+  const collectionService = useCorpCollectionsService({
+    client,
+    token: token || "",
+    userId: userService.data?.userId || 0,
+    latitude: locationService.data?.latitude || 0,
+    longitude: locationService.data?.longitude || 0,
   });
 
   // get auth0 token
@@ -216,6 +235,101 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     localStorage.setItem("marketingMeta", JSON.stringify(marketingMeta));
   }, [router.query, router.pathname, user?.sub]);
 
+  useEffect(() => {
+    if (!!collectionService.data.length && !collectionService.loading) {
+      // everything coming from graph
+      const newValues =
+        collectionService.data.reduce(
+          (values: LocalFavorite[], collection) => [
+            ...values,
+            ...collection.models.reduce((models: LocalFavorite[], model) => {
+              return [
+                ...models,
+                {
+                  modelNumber: model.modelNumber,
+                  state: "added",
+                  modelId: model.modelId,
+                  collectionId: collection.id,
+                  modelCollectionId: model.corpCollectionModelId,
+                },
+              ] as LocalFavorite[];
+            }, []),
+          ],
+          []
+        ) || [];
+
+      // values from graph not in favorites
+      const addedValues =
+        newValues.filter(
+          (value) =>
+            !favorites.find(
+              (favorite) => favorite.modelNumber === value.modelNumber
+            )
+        ) || [];
+
+      // values in favorites but not graph
+      const removedValues =
+        favorites.filter(
+          (favorite) =>
+            !newValues.find(
+              (value) => value.modelNumber === favorite.modelNumber
+            )
+        ) || [];
+
+      // join added and current
+      const joinedValues = [...addedValues, ...favorites];
+      const updatedFavorites =
+        joinedValues.map((favorite) => {
+          const newFavorite = newValues.find(
+            (value) => value.modelNumber === favorite.modelNumber
+          );
+
+          if (favorite.state === "toRemove") {
+            if (newFavorite) {
+              collectionService.remove(
+                newFavorite?.modelCollectionId || favorite.modelCollectionId
+              );
+            }
+            return {
+              ...favorite,
+              state: "removing" as LocalFavorite["state"],
+            };
+          }
+
+          if (favorite.state === "toAdd") {
+            if (!newFavorite) {
+              collectionService.add({
+                corpCollectionId: favorite.collectionId,
+                modelNumber: favorite.modelNumber,
+              });
+            }
+            return {
+              ...favorite,
+              state: "adding" as LocalFavorite["state"],
+            };
+          }
+
+          if (
+            !!removedValues.find(
+              (value) => value.modelNumber === favorite.modelNumber
+            )
+          ) {
+            return {
+              ...favorite,
+              state: "removed" as LocalFavorite["state"],
+            };
+          }
+
+          return {
+            ...(newFavorite || favorite),
+            state: "added" as LocalFavorite["state"],
+          };
+        }) || [];
+
+      setFavorites(updatedFavorites || []);
+    }
+  }, [collectionService.data]);
+
   const updateZipcode: UpdateZipcode = (zipcode) => {
     setZipcode(zipcode);
   };
@@ -241,12 +355,116 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
+  const toggleFavorite = (modelNumber: string, collectionId?: number) => {
+    const favoriteCollection = userService.data?.corpCollections?.find(
+      (collection) => collection.label === "Favorites"
+    );
+    const modelInFavorites = favorites.find(
+      (favoriteModel) => favoriteModel.modelNumber === modelNumber
+    );
+
+    if (favoriteCollection) {
+      if (modelInFavorites) {
+        if (modelInFavorites.state === "adding") {
+          setFavorites(
+            favorites.map((favorite) =>
+              favorite.modelNumber === modelNumber
+                ? { ...favorite, state: "toRemove" }
+                : favorite
+            ) || []
+          );
+        }
+
+        if (modelInFavorites.state === "toAdd") {
+          setFavorites(
+            favorites.map((favorite) =>
+              favorite.modelNumber === modelNumber
+                ? { ...favorite, state: "removed" }
+                : favorite
+            ) || []
+          );
+        }
+
+        if (modelInFavorites.state === "added") {
+          setFavorites(
+            favorites.map((favorite) =>
+              favorite.modelNumber === modelNumber
+                ? { ...favorite, state: "removing" }
+                : favorite
+            ) || []
+          );
+
+          collectionService.remove(modelInFavorites.modelCollectionId);
+        }
+
+        if (modelInFavorites.state === "removing") {
+          setFavorites(
+            favorites.map((favorite) =>
+              favorite.modelNumber === modelNumber
+                ? { ...favorite, state: "toAdd" }
+                : favorite
+            ) || []
+          );
+        }
+
+        if (modelInFavorites.state === "toRemove") {
+          setFavorites(
+            favorites.map((favorite) =>
+              favorite.modelNumber === modelNumber
+                ? { ...favorite, state: "toAdd" }
+                : favorite
+            ) || []
+          );
+        }
+
+        if (modelInFavorites.state === "removed") {
+          setFavorites(
+            favorites.map((favorite) =>
+              favorite.modelNumber === modelNumber
+                ? { ...favorite, state: "adding" }
+                : favorite
+            ) || []
+          );
+          if (collectionId || favoriteCollection?.id) {
+            collectionService.add({
+              corpCollectionId: collectionId || favoriteCollection.id,
+              modelNumber,
+            });
+          }
+        }
+      } else {
+        if (collectionId || favoriteCollection?.id) {
+          setFavorites([
+            ...favorites,
+            {
+              modelNumber,
+              modelId: 0,
+              collectionId: collectionId || favoriteCollection.id,
+              modelCollectionId: 0,
+              state: "adding",
+            },
+          ]);
+
+          collectionService.add({
+            corpCollectionId: collectionId || favoriteCollection.id,
+            modelNumber,
+          });
+        }
+      }
+    }
+  };
+
   const value: UserProviderValue = {
     user: userService.data,
     authUser: user || null,
     token,
     location: locationService.data,
     features: featureService.data,
+    favorites: favorites
+      .filter((favorite) =>
+        ["toAdd", "adding", "added"].includes(favorite.state)
+      )
+      .map((favorite) => favorite.modelNumber),
     marketingMeta,
     zipcode,
     distance,
@@ -262,6 +480,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       markContentComplete: userService.markContentComplete,
       markContentIncomplete: userService.markContentIncomplete,
       maybeMarkContentComplete,
+      toggleFavorite,
     },
   };
 
