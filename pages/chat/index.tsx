@@ -10,14 +10,15 @@ import {
   useState,
 } from "react";
 import SendIcon from "@/icons/send";
-import ThemeWrapper from "dx-sdk/build/providers/Theme";
-import { ModelCard } from "dx-sdk/build/components";
+import { Checkbox, ModelCard } from "dx-sdk/build/components";
 import useChatGPT from "@/hooks/useChatGPT";
 import ExpandingTextArea from "@/components/expandingTextArea";
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 import { useModelsService } from "dx-sdk/build/services";
 import toCurrency from "dx-sdk/build/utilities/toCurrency";
 import { Heart, FilledHeart } from "dx-sdk/build/icons";
+import { useAuth0 } from "@auth0/auth0-react";
+import { useUserState } from "@/contexts/user";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -58,12 +59,14 @@ interface UserState {
   minSquareFeet: null | number;
 }
 export default function Home() {
+  const userContextState = useUserState();
   const chatAnchorRef = useRef<HTMLUListElement>(null);
   const [prompt, setPrompt] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [loading, setLoading] = useState(false);
   const [incomingMessage, setIncomingMessage] = useState<Message | null>(null);
   const [queue, setQueue] = useState<Message[]>([]);
+  const { loginWithPopup, logout } = useAuth0();
   const [userState, setUserState] = useState<UserState>({
     beds: null,
     baths: null,
@@ -76,6 +79,7 @@ export default function Home() {
   });
   const [tokenCount, setTokenCount] = useState(0);
   const [models, setModels] = useState<any[]>([]);
+  const [anonFavorites, setAnonFavorites] = useState<string[]>([]);
   const modelsService = useModelsService({
     client,
     filters: {
@@ -146,6 +150,20 @@ export default function Home() {
 
       setLoading(false);
     });
+  };
+
+  const handleFavoritesClick = (modelNumber: string) => {
+    if (userContextState.user?.userId) {
+      userContextState.actions?.toggleFavorite(modelNumber);
+    } else {
+      const exists = anonFavorites.includes(modelNumber);
+
+      setAnonFavorites(
+        exists
+          ? anonFavorites.filter((modelNum) => modelNum !== modelNumber)
+          : [...anonFavorites, modelNumber]
+      );
+    }
   };
 
   useEffect(() => {
@@ -236,6 +254,9 @@ export default function Home() {
             `${item.baths} baths`,
             `${toCurrency(item.maxSquareFeet, 0, false)} sq. ft.`,
           ],
+          components: {
+            Action: Checkbox,
+          },
           componentsProps: {
             Action: {
               components: {
@@ -243,10 +264,11 @@ export default function Home() {
                 CheckedIcon: FilledHeart,
               },
               id: item.modelNumber,
-              // checked: userService.favorites?.includes(item.modelNumber),
+              checked:
+                userContextState.favorites?.includes(item.modelNumber) ||
+                anonFavorites.includes(item.modelNumber),
               handlers: {
-                // onChange: () =>
-                // 	userService.actions?.toggleFavorite(item.modelNumber),
+                onChange: () => handleFavoritesClick(item.modelNumber),
               },
             },
             Gallery: {
@@ -264,7 +286,66 @@ export default function Home() {
         })) || []
       );
     }
-  }, [modelsService.data, modelsService.loading]);
+  }, [
+    modelsService.data,
+    modelsService.loading,
+    userContextState.favorites,
+    anonFavorites,
+  ]);
+
+  useEffect(() => {
+    if (
+      userContextState.user?.userId &&
+      userContextState.user?.profile?.profileId
+    ) {
+      userContextState.actions?.patchProfile({
+        profile: {
+          ...(userState.maxPrice ? { budget: userState.maxPrice } : {}),
+          ...(userState.zipcode ? { landZip: userState.zipcode } : {}),
+          ...(userState.beds ? { preferredBeds: userState.beds } : {}),
+          ...(userState.baths ? { preferredBaths: userState.baths } : {}),
+          profileId: userContextState.user?.profile?.profileId,
+          profileType: "corp",
+          userId: userContextState.user?.userId,
+        },
+      });
+    }
+  }, [userState]);
+
+  useEffect(() => {
+    if (userContextState.user?.profile?.profileId) {
+      setUserState({
+        ...userState,
+        ...(userContextState.user.profile.preferredBeds
+          ? { beds: userContextState.user.profile.preferredBeds }
+          : {}),
+        ...(userContextState.user.profile.preferredBaths
+          ? { baths: userContextState.user.profile.preferredBaths }
+          : {}),
+        ...(userContextState.zipcode
+          ? { zipcode: parseInt(userContextState.zipcode) }
+          : {}),
+        ...(userContextState.distance
+          ? { distance: userContextState.distance }
+          : {}),
+        ...(userContextState.user.profile.budget
+          ? { maxPrice: userContextState.user.profile.budget }
+          : {}),
+        ...(userContextState.user.profile.landZip
+          ? { zipcode: userContextState.user.profile.landZip }
+          : {}),
+      });
+    }
+  }, [userContextState.user?.profile]);
+
+  useEffect(() => {
+    if (!userState.zipcode && userContextState.location?.postalCode) {
+      setUserState({
+        ...userState,
+        zipcode: parseInt(userContextState.location.postalCode),
+      });
+    }
+  }, [userContextState.location]);
 
   return (
     <>
@@ -280,6 +361,14 @@ export default function Home() {
       <main className={`${styles.main} ${inter.className}`}>
         <header className={styles.header}>
           <p>MyHome Assistant</p>
+          <button
+            onClick={() =>
+              userContextState.authUser?.sub ? logout() : loginWithPopup()
+            }
+            className={styles.authorizationButton}
+          >
+            {userContextState.authUser?.sub ? "Logout" : "Login"}
+          </button>
         </header>
         <section
           className={`${styles.queue} ${
