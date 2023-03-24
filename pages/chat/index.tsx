@@ -269,7 +269,24 @@ export default function Home() {
     }
   }, [modelsService.data, modelsService.loading]);
 
-  console.log(userContextState);
+  useEffect(() => {
+    if (
+      userContextState.user?.userId &&
+      userContextState.user?.profile?.profileId
+    ) {
+      userContextState.actions?.patchProfile({
+        profile: {
+          ...(userState.maxPrice ? { budget: userState.maxPrice } : {}),
+          ...(userState.zipcode ? { landZip: userState.zipcode } : {}),
+          ...(userState.beds ? { preferredBeds: userState.beds } : {}),
+          ...(userState.baths ? { preferredBaths: userState.baths } : {}),
+          profileId: userContextState.user?.profile?.profileId,
+          profileType: "corp",
+          userId: userContextState.user?.userId,
+        },
+      });
+    }
+  }, [userState]);
 
   return (
     <>
