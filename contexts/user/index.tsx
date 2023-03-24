@@ -2,19 +2,19 @@ import {
   useFeaturesService,
   useLocationService,
   useUserService,
-} from 'dx-sdk/build/services';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+} from "dx-sdk/build/services";
+import { createContext, useContext, useEffect, useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
 import {
   UserProviderProps,
   UserProviderValue,
   UpdateZipcode,
   UpdateDistance,
   MarketingMeta,
-} from './types';
-import config from '@/utils/config';
-import { useRouter } from 'next/router';
+} from "./types";
+import config from "@/utils/config";
+import { useRouter } from "next/router";
 
 export const client = new ApolloClient({
   uri: config.GRAPHQL_MESH_URI,
@@ -30,7 +30,7 @@ const initialState = {
   marketingMeta: {},
   loading: false,
   distance: 50,
-  zipcode: '',
+  zipcode: "",
 };
 
 export const UserContext = createContext<UserProviderValue>(initialState);
@@ -38,8 +38,8 @@ export const UserContext = createContext<UserProviderValue>(initialState);
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const router = useRouter();
   const [error, setError] = useState(null);
-  const [token, setToken] = useState('');
-  const [zipcode, setZipcode] = useState('');
+  const [token, setToken] = useState("");
+  const [zipcode, setZipcode] = useState("");
   const [distance, setDistance] = useState(50);
   const [completeContent, setCompleteContent] = useState<string[]>([]);
   const { user, getAccessTokenSilently } = useAuth0();
@@ -67,14 +67,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       },
     }),
     profile: {
-      profileType: 'corp',
+      profileType: "corp",
     },
     include: {
       corpCollections: true,
       profile: true,
       plannerProgress: true,
     },
-    plannerType: 'corp',
+    plannerType: "corp",
   });
 
   const locationService = useLocationService({
@@ -86,7 +86,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     client,
     token: token,
     condition: {
-      type: 'corp',
+      type: "corp",
     },
   });
 
@@ -99,12 +99,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // get zipcode from localStorage
   useEffect(() => {
-    setZipcode(localStorage.getItem('zipcode') || '');
+    setZipcode(localStorage.getItem("zipcode") || "");
   }, []);
 
   // get distance from localStorage
   useEffect(() => {
-    setDistance(parseInt(localStorage.getItem('distance') || '50', 10));
+    setDistance(parseInt(localStorage.getItem("distance") || "50", 10));
   }, []);
 
   // set zipcode in localStorage and profile on update
@@ -115,14 +115,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         profileId: 0,
       };
 
-      localStorage.setItem('zipcode', zipcode);
+      localStorage.setItem("zipcode", zipcode);
 
       if (profile && profile?.profileId) {
         userService.patchProfile({
           profile: {
             ...profile,
             profileId: profile?.profileId,
-            profileType: 'corp',
+            profileType: "corp",
             landZip: parseInt(zipcode),
           },
         });
@@ -133,7 +133,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // set distance in localStorage on update
   useEffect(() => {
     if (distance) {
-      localStorage.setItem('distance', `${distance}`);
+      localStorage.setItem("distance", `${distance}`);
     }
   }, [zipcode]);
 
@@ -163,57 +163,57 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // update marketing meta
   useEffect(() => {
     const localMarketingMeta = JSON.parse(
-      `${localStorage.getItem('marketingMeta')}`
+      `${localStorage.getItem("marketingMeta")}`
     );
     const gaTracker = window?.ga?.getAll()?.[0];
 
     const marketingMeta: MarketingMeta = {
       UtmSource:
         router.query?.utm_source ||
-        sessionStorage.getItem('utm_source') ||
+        sessionStorage.getItem("utm_source") ||
         localMarketingMeta?.UtmSource ||
-        '',
+        "",
       UtmMedium:
         router.query?.utm_medium ||
-        sessionStorage.getItem('utm_medium') ||
+        sessionStorage.getItem("utm_medium") ||
         localMarketingMeta?.UtmMedium ||
-        '',
+        "",
       UtmCampaign:
         router.query?.utm_campaign ||
-        sessionStorage.getItem('utm_campaign') ||
+        sessionStorage.getItem("utm_campaign") ||
         localMarketingMeta?.UtmCampaign ||
-        '',
+        "",
       UtmTerm:
         router.query?.utm_term ||
-        sessionStorage.getItem('utm_term') ||
+        sessionStorage.getItem("utm_term") ||
         localMarketingMeta?.UtmTerm ||
-        '',
+        "",
       UtmContent:
         router.query?.utm_content ||
-        sessionStorage.getItem('utm_content') ||
+        sessionStorage.getItem("utm_content") ||
         localMarketingMeta?.UtmContent ||
-        '',
-      GAClientId: gaTracker?.get('clientId') || '',
+        "",
+      GAClientId: gaTracker?.get("clientId") || "",
       // DXClientId: user?.sub,
       GoogleClickId:
         router.query?.gclid ||
-        sessionStorage.getItem('gclid') ||
+        sessionStorage.getItem("gclid") ||
         localMarketingMeta?.GoogleClickId ||
-        '',
+        "",
       BingClickId:
         router.query?.msclkid ||
-        sessionStorage.getItem('msclkid') ||
+        sessionStorage.getItem("msclkid") ||
         localMarketingMeta?.BingClickId ||
-        '',
+        "",
       FacebookClickId:
         router.query?.fbclid ||
-        sessionStorage.getItem('fbclid') ||
+        sessionStorage.getItem("fbclid") ||
         localMarketingMeta?.FacebookClickId ||
-        '',
+        "",
     };
 
     setMarketingMeta(marketingMeta);
-    localStorage.setItem('marketingMeta', JSON.stringify(marketingMeta));
+    localStorage.setItem("marketingMeta", JSON.stringify(marketingMeta));
   }, [router.query, router.pathname, user?.sub]);
 
   const updateZipcode: UpdateZipcode = (zipcode) => {
@@ -233,7 +233,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
       if (!isMarked) {
         userService.markContentComplete({
-          plannerType: 'corp',
+          plannerType: "corp",
           contentTag: key,
         });
         setCompleteContent([...completeContent, key]);
