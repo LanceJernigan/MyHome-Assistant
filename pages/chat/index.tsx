@@ -30,7 +30,7 @@ const client = new ApolloClient({
 const salesRepMessages = [
   {
     role: "system",
-    content: `You are an ai assistant that helps customers find their dream home to purchase.  Your name is MyHome Assistant.  When responding you should be witty, relaxed, and relatable but still professional.  New input should trump known information.  You need to ask the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), maximum price of home (maxPrice), minimum price of home (minPrice), max square feet of home (maxSquareFeet).  If there is known information assume we've already started a conversation.  Use known information for context.  If you know the answer to a question skip it.`,
+    content: `You are an ai assistant that helps customers find their dream home to purchase.  Your name is MyHome Assistant.  When responding you should be witty, relaxed, and relatable but still professional.  New input should trump known information.  You need to ask the customer one question at a time to find the following answers: minimum beds (beds), minimum baths (baths), zipcode for search (zipcode), distance from zipcode (distance), maximum price of home (maxPrice), minimum price of home (minPrice), max square feet of home (maxSquareFeet), min square feet of home (minSquareFeet).  If there is known information assume we've already started a conversation.  Use known information for context.  If the answer is already in the known information skip that question.  If all known information is filled out convince the user to browse the recommendations and favorite some homes.`,
   },
 ];
 
@@ -73,9 +73,9 @@ export default function Home() {
     zipcode: null,
     distance: null,
     maxPrice: null,
-    minPrice: null,
+    minPrice: 1,
     maxSquareFeet: null,
-    minSquareFeet: null,
+    minSquareFeet: 1,
   });
   const [tokenCount, setTokenCount] = useState(0);
   const [models, setModels] = useState<any[]>([]);
@@ -86,8 +86,8 @@ export default function Home() {
       beds: userState.beds || 3,
       baths: userState.baths || 2,
       distance: userState.distance || 50,
-      latitude: 36.0013,
-      longitude: -83.9119,
+      latitude: userContextState.location?.latitude || 0,
+      longitude: userContextState.location?.longitude || 0,
       maxPrice: userState.maxPrice || 150000,
       minPrice: userState.minPrice || 0,
       maxSquareFeet: userState.maxSquareFeet || 3000,
@@ -130,7 +130,7 @@ export default function Home() {
       },
       {
         role: "system",
-        content: `last question: ${lastMessage.content}`,
+        content: `last message context: ${lastMessage.content}`,
       },
       {
         role: "user",
@@ -167,9 +167,20 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!loading && !queue.length) {
+    if (
+      !loading &&
+      !queue.length &&
+      !userContextState.loading &&
+      userState.zipcode
+    ) {
       setLoading(true);
-      useChatGPT(salesRepMessages).then((result) => {
+      useChatGPT([
+        ...salesRepMessages,
+        {
+          role: "system",
+          content: `known information: ${JSON.stringify(userState)}`,
+        },
+      ]).then((result) => {
         const choice = result.choices[0];
 
         if (choice) {
@@ -184,7 +195,7 @@ export default function Home() {
         setLoading(false);
       });
     }
-  }, []);
+  }, [loading, queue, userContextState.loading, userState]);
 
   useEffect(() => {
     if (incomingMessage) {
@@ -228,7 +239,42 @@ export default function Home() {
             : null;
 
         if (newState) {
-          setUserState(newState);
+          setUserState({
+            beds:
+              typeof newState.beds !== "number" && newState.beds
+                ? parseInt(`${newState.beds}`)
+                : newState.beds,
+            baths:
+              typeof newState.beds !== "number" && newState.beds
+                ? parseInt(`${newState.baths}`)
+                : newState.baths,
+            zipcode:
+              typeof newState.zipcode !== "number" && newState.zipcode
+                ? parseInt(`${newState.zipcode}`)
+                : newState.zipcode,
+            distance:
+              typeof newState.distance !== "number" && newState.distance
+                ? parseInt(`${newState.distance}`)
+                : newState.distance,
+            maxPrice:
+              typeof newState.maxPrice !== "number" && newState.maxPrice
+                ? parseInt(`${newState.maxPrice}`)
+                : newState.maxPrice,
+            minPrice:
+              typeof newState.minPrice !== "number" && newState.minPrice
+                ? parseInt(`${newState.minPrice}`)
+                : newState.minPrice,
+            maxSquareFeet:
+              typeof newState.maxSquareFeet !== "number" &&
+              newState.maxSquareFeet
+                ? parseInt(`${newState.maxSquareFeet}`)
+                : newState.maxSquareFeet,
+            minSquareFeet:
+              typeof newState.minSquareFeet !== "number" &&
+              newState.minSquareFeet
+                ? parseInt(`${newState.minSquareFeet}`)
+                : newState.minSquareFeet,
+          });
         }
       });
     }
@@ -346,6 +392,8 @@ export default function Home() {
       });
     }
   }, [userContextState.location]);
+
+  console.log(userState);
 
   return (
     <>
