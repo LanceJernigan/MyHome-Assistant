@@ -41,11 +41,14 @@
 
 .homes {
   padding: 30px;
-  display: grid;
-  list-style: none;
   grid-area: queue;
   overflow-y: auto;
   padding-bottom: 150px;
+}
+
+.homesList {
+  display: grid;
+  list-style: none;
   grid-gap: 30px;
   align-content: flex-start;
   grid-template-columns: repeat(auto-fit, minmax(300px, auto));

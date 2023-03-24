@@ -223,7 +223,7 @@ export default function Home() {
   }, [queue]);
 
   useEffect(() => {
-    if (modelsService.data?.length) {
+    if (!modelsService.loading) {
       setModels(
         modelsService.data?.slice(0, 6).map((item) => ({
           key: item.modelNumber,
@@ -264,9 +264,7 @@ export default function Home() {
         })) || []
       );
     }
-  }, [modelsService.data]);
-
-  console.log(userState, tokenCount);
+  }, [modelsService.data, modelsService.loading]);
 
   return (
     <>
@@ -310,17 +308,34 @@ export default function Home() {
               <li></li>
             </ul>
           </section>
-          <ul
+          <section
             className={`${styles.homes} ${
               activeTab === "homes" && styles.homesActive
             }`}
           >
-            {models?.map((model) => (
-              <li className={styles.home} key={model.key}>
-                <ModelCard {...model} />
-              </li>
-            ))}
-          </ul>
+            {!models.length && !modelsService.loading && (
+              <>
+                <h1 style={{ marginBottom: "10px" }}>No Homes found</h1>
+                <p style={{ maxWidth: "400px" }}>
+                  We don't currently have any homes that match your criteria,
+                  try changing a few of your requirements.
+                </p>
+              </>
+            )}
+            {!!models.length && (
+              <ul
+                className={`${styles.homesList} ${
+                  activeTab === "homes" && styles.homesActive
+                }`}
+              >
+                {models?.map((model) => (
+                  <li className={styles.home} key={model.key}>
+                    <ModelCard {...model} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
           <section className={styles.chat}>
             <ul className={styles.navigation}>
               <li>
