@@ -79,6 +79,7 @@ export default function Home() {
   });
   const [tokenCount, setTokenCount] = useState(0);
   const [models, setModels] = useState<any[]>([]);
+  const [anonFavorites, setAnonFavorites] = useState<string[]>([]);
   const modelsService = useModelsService({
     client,
     filters: {
@@ -149,6 +150,20 @@ export default function Home() {
 
       setLoading(false);
     });
+  };
+
+  const handleFavoritesClick = (modelNumber: string) => {
+    if (userContextState.user?.userId) {
+      userContextState.actions?.toggleFavorite(modelNumber);
+    } else {
+      const exists = anonFavorites.includes(modelNumber);
+
+      setAnonFavorites(
+        exists
+          ? anonFavorites.filter((modelNum) => modelNum !== modelNumber)
+          : [...anonFavorites, modelNumber]
+      );
+    }
   };
 
   useEffect(() => {
@@ -249,10 +264,11 @@ export default function Home() {
                 CheckedIcon: FilledHeart,
               },
               id: item.modelNumber,
-              checked: userContextState.favorites?.includes(item.modelNumber),
+              checked:
+                userContextState.favorites?.includes(item.modelNumber) ||
+                anonFavorites.includes(item.modelNumber),
               handlers: {
-                onChange: () =>
-                  userContextState.actions?.toggleFavorite(item.modelNumber),
+                onChange: () => handleFavoritesClick(item.modelNumber),
               },
             },
             Gallery: {
@@ -270,7 +286,12 @@ export default function Home() {
         })) || []
       );
     }
-  }, [modelsService.data, modelsService.loading, userContextState.favorites]);
+  }, [
+    modelsService.data,
+    modelsService.loading,
+    userContextState.favorites,
+    anonFavorites,
+  ]);
 
   useEffect(() => {
     if (
@@ -325,8 +346,6 @@ export default function Home() {
       });
     }
   }, [userContextState.location]);
-
-  console.log(userState);
 
   return (
     <>
