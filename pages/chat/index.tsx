@@ -268,112 +268,110 @@ export default function Home() {
 
   return (
     <>
-      <ThemeWrapper theme={{}}>
-        <Head>
-          <title>MyHome Assistant</title>
-          <meta
-            name="description"
-            content="Chat assistant to help you find your dream home."
-          />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="icon" href="/favicon.ico" />
-        </Head>
-        <main className={`${styles.main} ${inter.className}`}>
-          <header className={styles.header}>
-            <p>MyHome Assistant</p>
-          </header>
-          <section
-            className={`${styles.queue} ${
-              activeTab === "queue" && styles.queueActive
-            }`}
-          >
-            {queue.map((message) => (
-              <section
-                className={`${styles.message} ${
-                  styles[`message-${message.author}`]
-                }`}
-                key={message.id}
-              >
-                <p>{message.content}</p>
-              </section>
-            ))}
-            <ul
-              className={`${styles.loading} ${
-                styles[loading ? "loadingActive" : "loadingInactive"]
+      <Head>
+        <title>MyHome Assistant</title>
+        <meta
+          name="description"
+          content="Chat assistant to help you find your dream home."
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <main className={`${styles.main} ${inter.className}`}>
+        <header className={styles.header}>
+          <p>MyHome Assistant</p>
+        </header>
+        <section
+          className={`${styles.queue} ${
+            activeTab === "queue" && styles.queueActive
+          }`}
+        >
+          {queue.map((message) => (
+            <section
+              className={`${styles.message} ${
+                styles[`message-${message.author}`]
               }`}
-              ref={chatAnchorRef}
+              key={message.id}
             >
-              <li></li>
-              <li></li>
-              <li></li>
-            </ul>
-          </section>
-          <section
-            className={`${styles.homes} ${
-              activeTab === "homes" && styles.homesActive
+              <p>{message.content}</p>
+            </section>
+          ))}
+          <ul
+            className={`${styles.loading} ${
+              styles[loading ? "loadingActive" : "loadingInactive"]
             }`}
+            ref={chatAnchorRef}
           >
-            {!models.length && !modelsService.loading && (
-              <>
-                <h1 style={{ marginBottom: "10px" }}>No Homes found</h1>
-                <p style={{ maxWidth: "400px" }}>
-                  We don't currently have any homes that match your criteria,
-                  try changing a few of your requirements.
-                </p>
-              </>
-            )}
-            {!!models.length && (
-              <ul
-                className={`${styles.homesList} ${
-                  activeTab === "homes" && styles.homesActive
-                }`}
-              >
-                {models?.map((model) => (
-                  <li className={styles.home} key={model.key}>
-                    <ModelCard {...model} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <section className={styles.chat}>
-            <ul className={styles.navigation}>
-              <li>
-                <button
-                  className={`${styles.tabButton} ${
-                    activeTab === "queue" && styles.tabButtonActive
-                  }`}
-                  onClick={() => setActiveTab("queue")}
-                >
-                  Chat
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`${styles.tabButton} ${
-                    activeTab === "homes" && styles.tabButtonActive
-                  }`}
-                  onClick={() => setActiveTab("homes")}
-                >
-                  Homes
-                </button>
-              </li>
+            <li></li>
+            <li></li>
+            <li></li>
+          </ul>
+        </section>
+        <section
+          className={`${styles.homes} ${
+            activeTab === "homes" && styles.homesActive
+          }`}
+        >
+          {!models.length && !modelsService.loading && (
+            <>
+              <h1 style={{ marginBottom: "10px" }}>No Homes found</h1>
+              <p style={{ maxWidth: "400px" }}>
+                We don't currently have any homes that match your criteria, try
+                changing a few of your requirements.
+              </p>
+            </>
+          )}
+          {!!models.length && (
+            <ul
+              className={`${styles.homesList} ${
+                activeTab === "homes" && styles.homesActive
+              }`}
+            >
+              {models?.map((model) => (
+                <li className={styles.home} key={model.key}>
+                  <ModelCard {...model} />
+                </li>
+              ))}
             </ul>
-            <form className={styles.form} onSubmit={handleSubmit}>
-              <ExpandingTextArea
-                className={`${styles.textarea} ${inter.className}`}
-                value={prompt}
-                onInput={handleInput}
-                onKeyDown={handleKeyDown}
-                rows={1}
-              />
-              <button type="submit" className={styles.send}>
-                <SendIcon />
+          )}
+        </section>
+        <section className={styles.chat}>
+          <ul className={styles.navigation}>
+            <li>
+              <button
+                className={`${styles.tabButton} ${
+                  activeTab === "queue" && styles.tabButtonActive
+                }`}
+                onClick={() => setActiveTab("queue")}
+              >
+                Chat
               </button>
-            </form>
-          </section>
-        </main>
-      </ThemeWrapper>
+            </li>
+            <li>
+              <button
+                className={`${styles.tabButton} ${
+                  activeTab === "homes" && styles.tabButtonActive
+                }`}
+                onClick={() => setActiveTab("homes")}
+              >
+                Homes
+              </button>
+            </li>
+          </ul>
+          <form className={styles.form} onSubmit={handleSubmit}>
+            <ExpandingTextArea
+              className={`${styles.textarea} ${inter.className}`}
+              value={prompt}
+              onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              rows={1}
+            />
+            <button type="submit" className={styles.send}>
+              <SendIcon />
+            </button>
+          </form>
+        </section>
+      </main>
     </>
   );
 }
