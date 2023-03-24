@@ -17,11 +17,8 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => (
     {...providerConfig}
     cacheLocation="localstorage"
     redirectUri={
-      typeof window !== "undefined" ? window.location.origin : "/portal/"
+      typeof window !== "undefined" ? window.location.origin : "/chat/"
     }
-    logo={`${
-      typeof window !== "undefined" ? location.origin : ""
-    }/portal/images/auth-logo.png`}
   >
     <ThemeProvider theme={{}}>
       <UserProvider>{children}</UserProvider>
